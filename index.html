@@ -298,6 +298,13 @@
   .member-benefit h3{color:var(--paper); font-family:'Mukta',sans-serif; font-weight:700; font-size:1rem; margin-bottom:6px;}
   .member-benefit p{color:rgba(247,241,227,0.72); font-size:0.9rem; margin:0;}
 
+  .special-card{margin-top:28px; border-radius:8px; padding:3px; background:linear-gradient(135deg, var(--marigold), var(--marigold-soft), var(--marigold));}
+  .special-card-inner{background:var(--indigo-deep); border-radius:6px; padding:36px; text-align:center;}
+  .special-avatar{width:84px; height:84px; border-radius:50%; object-fit:cover; margin:0 auto 14px; border:3px solid var(--marigold-soft); display:block;}
+  .special-emoji{font-size:1.8rem; margin-bottom:10px; letter-spacing:6px;}
+  .special-card-inner h3{color:var(--marigold-soft); font-family:'Rozha One',serif; font-size:1.5rem; margin-bottom:12px;}
+  .special-card-inner p{color:rgba(247,241,227,0.85); font-size:0.98rem; max-width:44ch; margin:0 auto 22px; line-height:1.6;}
+
   /* ---------- Custom auth modal (mobile number login) ---------- */
   .auth-overlay{display:none; position:fixed; inset:0; background:rgba(20,31,61,0.75); z-index:200; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto;}
   .auth-overlay.open{display:flex;}
@@ -735,6 +742,29 @@
       <span class="event-badge">Members Area</span>
       <h2 style="margin-top:14px;">Welcome back, <span class="member-name">Devotee</span> 🙏</h2>
       <p style="color:rgba(247,241,227,0.78); margin-top:10px;">You're logged in as a registered member of the Sabha. Here's what's available to you.</p>
+
+      <div class="special-card" id="birthdayCard" style="display:none;">
+        <div class="special-card-inner">
+          <img id="birthdayPhoto" class="special-avatar" style="display:none;" alt="">
+          <div class="special-emoji">🎂🪔🎉</div>
+          <h3>Happy Birthday, <span class="member-name">Devotee</span>!</h3>
+          <p>May Shri Krishna bless you with health, happiness, and deeper devotion in the year ahead. The whole Sabha wishes you a joyful day. 🙏</p>
+          <button class="btn btn-primary" onclick="downloadSpecialCard('birthday')">Download Birthday Card</button>
+        </div>
+      </div>
+
+      <div class="special-card" id="anniversaryCard" style="display:none;">
+        <div class="special-card-inner">
+          <img id="anniversaryPhoto" class="special-avatar" style="display:none;" alt="">
+          <div class="special-emoji">💐🪔💫</div>
+          <h3>Happy Anniversary, <span class="member-name">Devotee</span>!</h3>
+          <p>Wishing you both a lifetime of togetherness blessed by Radha-Krishna. May your bond grow stronger with each passing year. 🙏</p>
+          <button class="btn btn-primary" onclick="downloadSpecialCard('anniversary')">Download Anniversary Card</button>
+        </div>
+      </div>
+
+      <canvas id="cardCanvas" width="700" height="700" style="display:none;"></canvas>
+
       <div class="member-benefits">
         <div class="member-benefit">
           <h3>Festival WhatsApp Groups</h3>
@@ -1119,12 +1149,142 @@
         avatarEl.style.display = 'none';
       }
       document.getElementById('membersArea').style.display = 'block';
+      checkSpecialDates(user);
     } else {
       loggedOut.forEach(el=>el.style.display = el.tagName === 'A' ? 'inline-block' : 'flex');
       loggedIn.forEach(el=>el.style.display='none');
       document.getElementById('membersArea').style.display = 'none';
+      document.getElementById('birthdayCard').style.display = 'none';
+      document.getElementById('anniversaryCard').style.display = 'none';
     }
   }
+
+  function isTodayMonthDay(dateStr){
+    if(!dateStr) return false;
+    const d = new Date(dateStr + 'T00:00:00');
+    if(isNaN(d)) return false;
+    const today = new Date();
+    return d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
+  }
+
+  function checkSpecialDates(user){
+    const meta = user.user_metadata || {};
+    const displayName = meta.full_name || 'Devotee';
+    const photo = meta.photo || '';
+    const bCard = document.getElementById('birthdayCard');
+    const aCard = document.getElementById('anniversaryCard');
+    bCard.style.display = 'none';
+    aCard.style.display = 'none';
+
+    if(isTodayMonthDay(meta.date_of_birth)){
+      bCard.style.display = 'block';
+      const img = document.getElementById('birthdayPhoto');
+      if(photo){ img.src = photo; img.style.display = 'block'; } else { img.style.display = 'none'; }
+    }
+    if(isTodayMonthDay(meta.wedding_anniversary)){
+      aCard.style.display = 'block';
+      const img = document.getElementById('anniversaryPhoto');
+      if(photo){ img.src = photo; img.style.display = 'block'; } else { img.style.display = 'none'; }
+    }
+  }
+
+  function downloadSpecialCard(type){
+    const user = netlifyIdentity && netlifyIdentity.currentUser();
+    const meta = (user && user.user_metadata) || {};
+    const name = meta.full_name || 'Devotee';
+    const photo = meta.photo || '';
+    const canvas = document.getElementById('cardCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    function drawBase(){
+      const grad = ctx.createLinearGradient(0, 0, W, H);
+      grad.addColorStop(0, '#141F3D');
+      grad.addColorStop(1, '#1E2E56');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.strokeStyle = '#E1A542';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(20, 20, W-40, H-40);
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(34, 34, W-68, H-68);
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#F0C878';
+      ctx.font = '52px Georgia';
+      ctx.fillText(type === 'birthday' ? '🎂 🪔 🎉' : '💐 🪔 💫', W/2, 150);
+
+      ctx.fillStyle = '#F7F1E3';
+      ctx.font = '600 30px Georgia';
+      ctx.fillText(type === 'birthday' ? 'Happy Birthday!' : 'Happy Anniversary!', W/2, 420);
+
+      ctx.fillStyle = '#E1A542';
+      ctx.font = '600 26px Georgia';
+      ctx.fillText(name, W/2, 465);
+
+      ctx.fillStyle = 'rgba(247,241,227,0.8)';
+      ctx.font = '18px Georgia';
+      wrapText(ctx, type === 'birthday'
+        ? 'May Shri Krishna bless you with health, happiness and devotion.'
+        : 'Wishing you a lifetime of togetherness, blessed by Radha-Krishna.',
+        W/2, 510, 480, 26);
+
+      ctx.fillStyle = '#F0C878';
+      ctx.font = '600 20px Georgia';
+      ctx.fillText('— Shri Krishna Bhakta Sabha', W/2, H-60);
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+      const words = text.split(' ');
+      let line = '';
+      let yy = y;
+      for(let n=0; n<words.length; n++){
+        const testLine = line + words[n] + ' ';
+        if(ctx.measureText(testLine).width > maxWidth && n > 0){
+          ctx.fillText(line, x, yy);
+          line = words[n] + ' ';
+          yy += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, x, yy);
+    }
+
+    function triggerDownload(){
+      const link = document.createElement('a');
+      link.download = (type === 'birthday' ? 'birthday-card-' : 'anniversary-card-') + name.replace(/\s+/g,'-') + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    if(photo){
+      const img = new Image();
+      img.onload = function(){
+        drawBase();
+        const r = 70;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(W/2, 260, r, 0, Math.PI*2);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(img, W/2-r, 260-r, r*2, r*2);
+        ctx.restore();
+        ctx.strokeStyle = '#F0C878';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(W/2, 260, r, 0, Math.PI*2);
+        ctx.stroke();
+        triggerDownload();
+      };
+      img.src = photo;
+    } else {
+      drawBase();
+      triggerDownload();
+    }
+  }
+  window.downloadSpecialCard = downloadSpecialCard;
   function openAuthModal(type){
     document.getElementById(type === 'signup' ? 'signupOverlay' : 'loginOverlay').classList.add('open');
   }
