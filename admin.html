@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Sabha Admin · Zoom Classes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:'Mukta',system-ui,sans-serif; background:#F7F1E3; color:#1B1B1B; line-height:1.55;}
+  .bar{background:#141F3D; color:#F7F1E3;}
+  .bar-in{max-width:1000px; margin:0 auto; padding:16px 20px; display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
+  .bar h1{margin:0; font-size:1.3rem; font-weight:700; flex:1; min-width:200px;}
+  .bar a{color:#F0C878; text-decoration:none; font-weight:600;}
+  .bar a:hover{text-decoration:underline;}
+  main{max-width:1000px; margin:0 auto; padding:28px 20px 70px;}
+  .card{background:#fff; border:1.5px solid rgba(20,31,61,0.15); border-radius:14px; padding:26px; margin-bottom:20px;}
+  h2{margin:0 0 6px; font-size:1.5rem; color:#141F3D;}
+  .sub{margin:0 0 18px; color:#5A5648; font-size:1.05rem;}
+  label{display:block; font-weight:700; font-size:1rem; margin:14px 0 6px; color:#141F3D;}
+  input[type=text],input[type=tel],input[type=email],input[type=password],input[type=number],textarea{
+    width:100%; font:inherit; font-size:1.1rem; padding:12px 14px; border:2px solid rgba(20,31,61,0.25); border-radius:10px; background:#fff;
+  }
+  input:focus,textarea:focus{outline:3px solid #0F5C55; outline-offset:1px; border-color:#0F5C55;}
+  input:disabled{display:none;}
+  .hint{font-size:0.92rem; color:#5A5648; margin:4px 0 0;}
+  .btn{font:inherit; font-size:1.05rem; font-weight:700; padding:12px 22px; border-radius:10px; border:2px solid #E1A542; background:#E1A542; color:#141F3D; cursor:pointer;}
+  .btn:hover{background:#F0C878; border-color:#F0C878;}
+  .btn.alt{background:none; border-color:#141F3D;}
+  .btn.alt:hover{background:rgba(20,31,61,0.08);}
+  .btn.danger{background:none; border-color:#B3261E; color:#B3261E;}
+  .btn.danger:hover{background:#B3261E; color:#fff;}
+  .btn.small{padding:8px 14px; font-size:0.95rem;}
+  .btn:focus-visible{outline:3px solid #0F5C55; outline-offset:2px;}
+  .tabs{display:flex; gap:8px; margin:14px 0 4px;}
+  .tab{flex:1; font:inherit; font-weight:700; padding:10px; border-radius:22px; border:1.5px solid rgba(20,31,61,0.25); background:#fff; cursor:pointer; color:#5A5648;}
+  .tab.on{background:#141F3D; color:#F7F1E3; border-color:#141F3D;}
+  .toolbar{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;}
+  .err{color:#B3261E; font-weight:600; margin-top:12px; min-height:1.2em;}
+  .uid{font-family:monospace; font-size:1.1rem; background:#FFF8E1; border:1.5px dashed #E1A542; padding:12px; border-radius:10px; word-break:break-all; margin:12px 0;}
+  .class-item{display:flex; gap:16px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; background:#fff; border:1.5px solid rgba(20,31,61,0.15); border-radius:14px; padding:18px 20px; margin-bottom:12px;}
+  .class-item.hidden-class{background:#F3F0E8; opacity:0.85;}
+  .ci-main{flex:1; min-width:240px;}
+  .ci-main h3{margin:0 0 4px; font-size:1.25rem; color:#141F3D;}
+  .ci-when{color:#0F5C55; font-weight:600;}
+  .ci-meta{font-size:0.98rem; color:#3F3B30;}
+  .badge{display:inline-block; font-size:0.85rem; font-weight:700; padding:2px 10px; border-radius:20px; margin-left:8px; vertical-align:middle;}
+  .badge.on{background:#DDF3E4; color:#14633A;}
+  .badge.off{background:#EADDDD; color:#8A2A2A;}
+  .ci-actions{display:flex; gap:8px; flex-wrap:wrap;}
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:0 18px;}
+  .form-grid .full{grid-column:1 / -1;}
+  @media (max-width:640px){ .form-grid{grid-template-columns:1fr;} }
+  .check{display:flex; align-items:center; gap:10px; margin-top:18px; font-size:1.05rem; font-weight:600;}
+  .check input{width:22px; height:22px;}
+  .form-actions{display:flex; gap:12px; margin-top:22px; flex-wrap:wrap;}
+  .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#141F3D; color:#F7F1E3; padding:14px 22px; border-radius:10px; font-weight:600; box-shadow:0 10px 30px rgba(0,0,0,0.35); opacity:0; pointer-events:none; transition:opacity .25s; z-index:50; max-width:92vw;}
+  .toast.show{opacity:1;}
+  [hidden]{display:none !important;}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-in">
+    <a href="./">&larr; Back to website</a>
+    <h1>Sabha Admin · Zoom Classes</h1>
+    <button class="btn alt small" id="logoutBtn" type="button" hidden style="color:#F7F1E3; border-color:#F7F1E3;">Log out</button>
+  </div>
+</header>
+
+<main>
+  <p id="status" class="sub">Checking login…</p>
+
+  <!-- Login -->
+  <section class="card" id="loginBox" hidden>
+    <h2>Admin login</h2>
+    <p class="sub">Log in with your Sabha member account.</p>
+    <div class="tabs">
+      <button type="button" class="tab on" id="tabMobile">Mobile Number</button>
+      <button type="button" class="tab" id="tabEmail">Email</button>
+    </div>
+    <form id="loginForm">
+      <div id="mobileGroup">
+        <label for="liMobile">Mobile Number</label>
+        <input id="liMobile" type="tel" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" placeholder="10-digit mobile number" required>
+      </div>
+      <div id="emailGroup" hidden>
+        <label for="liEmail">Email</label>
+        <input id="liEmail" type="email" placeholder="you@example.com" disabled>
+      </div>
+      <label for="liPass">Password</label>
+      <input id="liPass" type="password" required>
+      <div class="err" id="loginErr"></div>
+      <div class="form-actions"><button class="btn" type="submit">Log in</button></div>
+    </form>
+  </section>
+
+  <!-- Logged in, but not an admin yet -->
+  <section class="card" id="noAccess" hidden>
+    <h2>This account is not an admin yet</h2>
+    <p class="sub">To make it an admin, add this User ID in Firebase (the steps are in the setup guide):</p>
+    <div class="uid" id="uidBox"></div>
+    <button class="btn small" type="button" id="copyUid">Copy User ID</button>
+  </section>
+
+  <!-- Admin area -->
+  <section id="adminArea" hidden>
+    <div class="toolbar">
+      <button class="btn" type="button" id="addBtn">+ Add a class</button>
+      <button class="btn alt" type="button" id="importBtn">Import from a CSV file</button>
+      <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
+    </div>
+
+    <section class="card" id="formCard" hidden>
+      <h2 id="formTitle">Add a class</h2>
+      <form id="classForm" novalidate>
+        <div class="form-grid">
+          <div class="full"><label for="fName">Class name *</label><input id="fName" type="text" placeholder="e.g. Sriman Narayaneeyam"></div>
+          <div><label for="fDay">Day</label><input id="fDay" type="text" placeholder="e.g. Mon - Fri"></div>
+          <div><label for="fTime">Time</label><input id="fTime" type="text" placeholder="e.g. 10:30 AM"></div>
+          <div class="full"><label for="fTeacher">Teacher</label><input id="fTeacher" type="text" placeholder="e.g. Smt. Malathi Balaje"></div>
+          <div class="full"><label for="fFmt">Name to type in Zoom</label><input id="fFmt" type="text" placeholder="e.g. Roll No + Registered Name"></div>
+          <div class="full"><label for="fLink">Zoom link</label><input id="fLink" type="text" placeholder="https://us06web.zoom.us/j/..."><p class="hint">Must start with https://. A link with the password inside lets devotees join with one tap.</p></div>
+          <div><label for="fMid">Meeting ID</label><input id="fMid" type="text" placeholder="e.g. 814 4200 5415"></div>
+          <div><label for="fPwd">Password</label><input id="fPwd" type="text" placeholder="e.g. 18"></div>
+          <div class="full"><label for="fNote">Note</label><input id="fNote" type="text" placeholder="Anything devotees should know"></div>
+          <div><label for="fOrder">Order on the website</label><input id="fOrder" type="number" min="1" step="1"><p class="hint">1 shows first.</p></div>
+        </div>
+        <label class="check"><input id="fActive" type="checkbox" checked> Show this class on the website</label>
+        <div class="err" id="formErr"></div>
+        <div class="form-actions">
+          <button class="btn" type="submit" id="saveBtn">Save class</button>
+          <button class="btn alt" type="button" id="cancelBtn">Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <div id="classList"></div>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+/* Same Firebase settings as the website. These are safe to be public:
+   the Firestore rules decide who can read and change the classes. */
+const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyClQonk7JrTaF1V3waBdYHeCQpFR4pTTjs',
+  authDomain: 'shri-krishna-bhakta-sabha.firebaseapp.com',
+  projectId: 'shri-krishna-bhakta-sabha',
+  appId: '1:496204814576:web:95488b7e284f7bfdac0a35'
+};
+const MEMBER_EMAIL_DOMAIN = 'members.krishnabhaktasabha.in';
+
+const $ = (id) => document.getElementById(id);
+const show = (id, on) => { $(id).hidden = !on; };
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 3200); }
+
+(async function(){
+  let authM, fsM, auth, db, current = null, classes = [], editingId = null;
+
+  try{
+    const base = 'https://www.gstatic.com/firebasejs/10.12.2/';
+    const [appM, a, f] = await Promise.all([
+      import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')
+    ]);
+    authM = a; fsM = f;
+    const app = appM.initializeApp(FIREBASE_CONFIG);
+    auth = authM.getAuth(app); db = fsM.getFirestore(app);
+  }catch(e){
+    $('status').textContent = 'Could not connect. Please check your internet and refresh the page.';
+    return;
+  }
+
+  /* ---------- login ---------- */
+  let method = 'mobile';
+  function setMethod(m){
+    method = m;
+    $('tabMobile').classList.toggle('on', m === 'mobile');
+    $('tabEmail').classList.toggle('on', m === 'email');
+    show('mobileGroup', m === 'mobile'); show('emailGroup', m === 'email');
+    $('liMobile').disabled = (m !== 'mobile'); $('liEmail').disabled = (m !== 'email');
+    $('liMobile').required = (m === 'mobile'); $('liEmail').required = (m === 'email');
+    if(m === 'mobile') $('liEmail').value = ''; else $('liMobile').value = '';
+  }
+  $('tabMobile').onclick = () => setMethod('mobile');
+  $('tabEmail').onclick = () => setMethod('email');
+  setMethod('mobile');
+
+  $('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('loginErr').textContent = '';
+    let email;
+    if(method === 'mobile'){
+      const m = $('liMobile').value.trim();
+      if(!/^[0-9]{10}$/.test(m)){ $('loginErr').textContent = 'Please enter a valid 10-digit mobile number.'; return; }
+      email = 'm' + m + '@' + MEMBER_EMAIL_DOMAIN;
+    } else { email = $('liEmail').value.trim(); }
+    try{
+      await authM.signInWithEmailAndPassword(auth, email, $('liPass').value);
+      $('liPass').value = '';
+    }catch(err){
+      $('loginErr').textContent = 'Incorrect login details. Please try again.';
+    }
+  });
+  $('logoutBtn').onclick = () => authM.signOut(auth);
+
+  /* ---------- classes ---------- */
+  const clean = (v) => String(v == null ? '' : v).trim();
+  async function loadClasses(){
+    const snap = await fsM.getDocs(fsM.collection(db, 'classes'));
+    classes = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+    classes.sort((x, y) => (Number(x.order) || 0) - (Number(y.order) || 0) || clean(x.name).localeCompare(clean(y.name)));
+    renderList();
+  }
+
+  function renderList(){
+    const box = $('classList'); box.innerHTML = '';
+    if(!classes.length){
+      const p = document.createElement('p'); p.className = 'sub';
+      p.textContent = 'No classes yet. Tap "+ Add a class" to add the first one.';
+      box.appendChild(p); return;
+    }
+    classes.forEach(c => {
+      const item = document.createElement('div');
+      item.className = 'class-item' + (c.active === false ? ' hidden-class' : '');
+      const main = document.createElement('div'); main.className = 'ci-main';
+      const h = document.createElement('h3'); h.textContent = clean(c.name);
+      const badge = document.createElement('span'); badge.className = 'badge ' + (c.active === false ? 'off' : 'on');
+      badge.textContent = c.active === false ? 'Hidden' : 'Visible'; h.appendChild(badge);
+      main.appendChild(h);
+      const when = [clean(c.day), clean(c.time)].filter(Boolean).join(' · ');
+      if(when){ const d = document.createElement('div'); d.className = 'ci-when'; d.textContent = when; main.appendChild(d); }
+      const bits = [];
+      if(clean(c.teacher)) bits.push('with ' + clean(c.teacher));
+      if(clean(c.meeting_id)) bits.push('Meeting ID ' + clean(c.meeting_id));
+      if(clean(c.password)) bits.push('Password ' + clean(c.password));
+      if(clean(c.zoom_link)) bits.push('Has Zoom link'); else bits.push('No Zoom link');
+      const m = document.createElement('div'); m.className = 'ci-meta'; m.textContent = bits.join(' · '); main.appendChild(m);
+      item.appendChild(main);
+
+      const act = document.createElement('div'); act.className = 'ci-actions';
+      const mk = (label, cls, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn small ' + cls; b.textContent = label; b.onclick = fn; act.appendChild(b); };
+      mk('Edit', 'alt', () => openForm(c));
+      mk(c.active === false ? 'Show' : 'Hide', 'alt', async () => {
+        try{ await fsM.updateDoc(fsM.doc(db, 'classes', c.id), { active: c.active === false }); toast(c.active === false ? 'Class is now visible.' : 'Class is now hidden.'); await loadClasses(); }
+        catch(e){ toast('Could not save. Please try again.'); }
+      });
+      mk('Delete', 'danger', async () => {
+        if(!confirm('Delete "' + clean(c.name) + '" for good? To keep it but remove it from the website, use Hide instead.')) return;
+        try{ await fsM.deleteDoc(fsM.doc(db, 'classes', c.id)); toast('Class deleted.'); await loadClasses(); }
+        catch(e){ toast('Could not delete. Please try again.'); }
+      });
+      item.appendChild(act);
+      box.appendChild(item);
+    });
+  }
+
+  function openForm(c){
+    editingId = c ? c.id : null;
+    $('formTitle').textContent = c ? 'Edit class' : 'Add a class';
+    $('fName').value = c ? clean(c.name) : '';
+    $('fDay').value = c ? clean(c.day) : '';
+    $('fTime').value = c ? clean(c.time) : '';
+    $('fTeacher').value = c ? clean(c.teacher) : '';
+    $('fFmt').value = c ? clean(c.name_in_zoom) : '';
+    $('fLink').value = c ? clean(c.zoom_link) : '';
+    $('fMid').value = c ? clean(c.meeting_id) : '';
+    $('fPwd').value = c ? clean(c.password) : '';
+    $('fNote').value = c ? clean(c.note) : '';
+    const maxOrder = classes.reduce((mx, x) => Math.max(mx, Number(x.order) || 0), 0);
+    $('fOrder').value = c ? (Number(c.order) || '') : (maxOrder + 1);
+    $('fActive').checked = c ? c.active !== false : true;
+    $('formErr').textContent = '';
+    show('formCard', true);
+    $('formCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('fName').focus();
+  }
+  function closeForm(){ show('formCard', false); editingId = null; }
+  $('addBtn').onclick = () => openForm(null);
+  $('cancelBtn').onclick = closeForm;
+
+  $('classForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = clean($('fName').value);
+    const link = clean($('fLink').value);
+    if(!name){ $('formErr').textContent = 'Please enter the class name.'; return; }
+    if(link && !/^https:\/\//i.test(link)){ $('formErr').textContent = 'The Zoom link must start with https://'; return; }
+    const data = {
+      name, day: clean($('fDay').value), time: clean($('fTime').value), teacher: clean($('fTeacher').value),
+      name_in_zoom: clean($('fFmt').value), zoom_link: link, meeting_id: clean($('fMid').value),
+      password: clean($('fPwd').value), note: clean($('fNote').value),
+      order: Number($('fOrder').value) || 0, active: $('fActive').checked
+    };
+    try{
+      if(editingId) await fsM.updateDoc(fsM.doc(db, 'classes', editingId), data);
+      else await fsM.addDoc(fsM.collection(db, 'classes'), data);
+      toast('Saved.'); closeForm(); await loadClasses();
+    }catch(err){
+      $('formErr').textContent = 'Could not save. Please check your internet and try again.';
+    }
+  });
+
+  /* ---------- import from the old Google Sheet (as a CSV file) ---------- */
+  function parseCSV(text){
+    const rows = []; let row = [], cell = '', q = false;
+    text = text.replace(/^\uFEFF/, '');
+    for(let i = 0; i < text.length; i++){
+      const c = text[i];
+      if(q){ if(c === '"'){ if(text[i+1] === '"'){ cell += '"'; i++; } else q = false; } else cell += c; }
+      else if(c === '"') q = true;
+      else if(c === ','){ row.push(cell); cell = ''; }
+      else if(c === '\n' || c === '\r'){ if(c === '\r' && text[i+1] === '\n') i++; row.push(cell); cell = ''; if(row.some(x => x.trim() !== '')) rows.push(row); row = []; }
+      else cell += c;
+    }
+    row.push(cell); if(row.some(x => x.trim() !== '')) rows.push(row);
+    return rows;
+  }
+  $('importBtn').onclick = () => $('csvFile').click();
+  $('csvFile').addEventListener('change', async (e) => {
+    const file = e.target.files[0]; e.target.value = '';
+    if(!file) return;
+    const rows = parseCSV(await file.text());
+    if(rows.length < 2){ toast('That file has no classes in it.'); return; }
+    const head = rows[0].map(h => h.trim().toLowerCase());
+    const col = (names) => head.findIndex(h => names.includes(h));
+    const ix = { active: col(['active','show']), name: col(['class','class name','name']), day: col(['day','days']), time: col(['time']),
+      teacher: col(['teacher','teachers']), fmt: col(['name in zoom','name format']), link: col(['zoom link','link','url']),
+      mid: col(['meeting id','meetingid']), pwd: col(['password','passcode']), note: col(['note','notes']) };
+    if(ix.name < 0){ toast('The file needs a column called "Class".'); return; }
+    const get = (r, k) => ix[k] >= 0 ? clean(r[ix[k]]) : '';
+    const dash = (v) => /^[-–—]+$/.test(v) ? '' : v;
+    const items = rows.slice(1).filter(r => get(r, 'name'));
+    if(!items.length){ toast('No classes found in that file.'); return; }
+    if(!confirm('Add ' + items.length + ' classes from this file? Classes already on the website stay as they are.')) return;
+    let order = classes.reduce((mx, x) => Math.max(mx, Number(x.order) || 0), 0);
+    let added = 0;
+    for(const r of items){
+      let link = get(r, 'link'); if(link && !/^https:\/\//i.test(link)) link = '';
+      const act = get(r, 'active').toLowerCase();
+      try{
+        await fsM.addDoc(fsM.collection(db, 'classes'), {
+          name: get(r, 'name'), day: get(r, 'day'), time: get(r, 'time'), teacher: dash(get(r, 'teacher')),
+          name_in_zoom: get(r, 'fmt'), zoom_link: link, meeting_id: get(r, 'mid'), password: get(r, 'pwd'),
+          note: get(r, 'note'), order: ++order, active: !['no','n','false','0','hide','hidden'].includes(act)
+        }); added++;
+      }catch(err){ /* keep going */ }
+    }
+    toast(added + ' classes added.'); await loadClasses();
+  });
+
+  /* ---------- who is logged in ---------- */
+  $('copyUid').onclick = async () => {
+    try{ await navigator.clipboard.writeText(current.uid); toast('User ID copied.'); }catch(e){ toast('Please select and copy the ID by hand.'); }
+  };
+
+  authM.onAuthStateChanged(auth, async (user) => {
+    current = user;
+    show('loginBox', false); show('noAccess', false); show('adminArea', false); show('logoutBtn', !!user);
+    if(!user){ $('status').textContent = ''; show('loginBox', true); return; }
+    $('status').textContent = 'Checking access…';
+    let isAdmin = false;
+    try{ const snap = await fsM.getDoc(fsM.doc(db, 'admins', user.uid)); isAdmin = snap.exists(); }catch(e){}
+    if(!isAdmin){ $('status').textContent = ''; $('uidBox').textContent = user.uid; show('noAccess', true); return; }
+    $('status').textContent = '';
+    show('adminArea', true);
+    try{ await loadClasses(); }catch(e){ toast('Could not load the classes. Please refresh.'); }
+  });
+})();
+</script>
+</body>
+</html>
