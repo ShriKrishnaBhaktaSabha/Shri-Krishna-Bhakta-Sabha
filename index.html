@@ -209,6 +209,13 @@
   .cred-copy{border:1.5px solid #0F5C55; background:none; color:#0F5C55; font:inherit; font-weight:600; font-size:0.95rem; padding:6px 12px; border-radius:8px; cursor:pointer;}
   .cred-copy:hover{background:#0F5C55; color:#fff;}
   .cred-copy:focus-visible{outline:3px solid #141F3D; outline-offset:2px;}
+  .class-locked p{margin:0 0 16px; font-size:1.12rem; line-height:1.6; color:#3F3B30;}
+  .class-lock-actions{display:flex; gap:12px; flex-wrap:wrap;}
+  .lock-btn{font:inherit; font-size:1.1rem; font-weight:700; padding:13px 28px; border-radius:10px; cursor:pointer; background:#E1A542; color:#141F3D; border:2px solid #E1A542;}
+  .lock-btn:hover{background:#F0C878; border-color:#F0C878;}
+  .lock-btn.alt{background:none; color:#141F3D; border-color:#141F3D;}
+  .lock-btn.alt:hover{background:rgba(20,31,61,0.08);}
+  .lock-btn:focus-visible{outline:3px solid #141F3D; outline-offset:3px;}
   .class-nolink{margin-top:auto; font-weight:600; color:#0F5C55; font-size:1.05rem;}
   .class-join:hover{background:#F0C878;}
   .class-join:focus-visible{outline:3px solid #141F3D; outline-offset:3px;}
@@ -704,6 +711,13 @@ const FIREBASE_CONFIG = {
       logout: function(){ return authM.signOut(auth); }
     };
 
+    window.skbsClassesApi = {
+      list: async function(){
+        const snap = await fsM.getDocs(fsM.collection(db, 'classes'));
+        return snap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });
+      }
+    };
+
     authM.onAuthStateChanged(auth, async function(user){
       if(signingUp || !window.skbsSetAuthUI) return;
       if(user) window.skbsSetAuthUI({ user_metadata: await profileFor(user) });
@@ -740,9 +754,11 @@ const FIREBASE_CONFIG = {
       out.forEach(function(el){ el.style.display = 'inline-flex'; });
       inn.forEach(function(el){ el.style.display = 'none'; });
     }
+    if(window.skbsOnAuth) window.skbsOnAuth(!!user);
   }
 
   window.skbsSetAuthUI = setAuthUI;
+  window.skbsOpenAuth = function(type){ openAuthModal(type); };
 
   function openAuthModal(type){
     if(!identityReady()){ document.getElementById("authNotice").classList.add("open"); return; }
@@ -1181,7 +1197,7 @@ const FIREBASE_CONFIG = {
     ]},
     { title:'Class in Zoom', icon:ICON_ZOOM, items:[
       { q:'Where do I find the Zoom link for my class?',
-        a:'Go to the <a href="#classes">Join a Class in Zoom</a> section of this website. Each class has its own card with the day and time, and a <b>Join in Zoom</b> button. If a card has no Join button or Meeting ID, the link is shared in our WhatsApp group.' },
+        a:'Log in to this website (or register if you are new), then go to the <a href="#classes">Join a Class in Zoom</a> section. Each class has its own card with the day and time, and a <b>Join in Zoom</b> button. If a card has no Join button or Meeting ID, the link is shared in our WhatsApp group.' },
       { q:'I am joining a class in Zoom for the first time. What do I do?',
         a:'Install the free Zoom app on your phone or computer. Then tap <b>Join in Zoom</b> on your class card. Zoom will open and ask for your name. Each class has its own way of writing the name: some classes use your <b>Roll Number followed by your registered name</b>, and some use <b>just your registered name</b>. Please look for the line <b>Name in Zoom</b> on your class card and type your name exactly that way. If your card does not show it, please check the WhatsApp group or ask your teacher. Then allow the microphone when Zoom asks, and tap <b>Join</b>.' },
 
@@ -1280,13 +1296,8 @@ const FIREBASE_CONFIG = {
 
 <script>
 (function(){
-  /* ===== ADMIN SETUP =====
-     1) Keep the class list in a Google Sheet (see the template file).
-     2) In the sheet: File > Share > Publish to web > choose the sheet tab and "Comma-separated values (.csv)" > Publish.
-     3) Paste that link between the quotes below. After that, the admin only edits the sheet.
-     Never put the Zoom password in the sheet, because the published sheet is public. */
-  var SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5DjSV9xxurg6InO4mrBHc-YRvK8GB7ofx8wJzdBVEDjgyqr-9NIYENLAbmUEF9HKGtCMDbUSl54xY/pub?output=csv';
-
+  /* The class list now comes from the Sabha's Firebase database, and Firebase only hands it
+     to devotees who are logged in. The admin edits the list on the Admin page (admin.html). */
   var listEl = document.getElementById('classList');
 
   function message(text){
@@ -1295,38 +1306,6 @@ const FIREBASE_CONFIG = {
     d.className = 'class-msg';
     d.textContent = text;
     listEl.appendChild(d);
-  }
-
-  /* small CSV reader that understands quotes, commas and line breaks inside cells */
-  function parseCSV(text){
-    var rows = [], row = [], cell = '', q = false, i, c;
-    text = text.replace(/^\uFEFF/, '');
-    for(i = 0; i < text.length; i++){
-      c = text[i];
-      if(q){
-        if(c === '"'){
-          if(text[i+1] === '"'){ cell += '"'; i++; } else { q = false; }
-        } else { cell += c; }
-      } else if(c === '"'){ q = true; }
-      else if(c === ','){ row.push(cell); cell = ''; }
-      else if(c === '\n' || c === '\r'){
-        if(c === '\r' && text[i+1] === '\n') i++;
-        row.push(cell); cell = '';
-        if(row.some(function(x){ return x.trim() !== ''; })) rows.push(row);
-        row = [];
-      } else { cell += c; }
-    }
-    row.push(cell);
-    if(row.some(function(x){ return x.trim() !== ''; })) rows.push(row);
-    return rows;
-  }
-
-  function pick(o, names){
-    for(var i = 0; i < names.length; i++){
-      var v = o[names[i]] === undefined ? '' : String(o[names[i]]).trim();
-      if(v !== '' && !/^[-–—]+$/.test(v)) return v;
-    }
-    return '';
   }
 
   var VIDEO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></svg>';
@@ -1364,33 +1343,26 @@ const FIREBASE_CONFIG = {
     return row;
   }
 
-  function render(rows){
-    if(rows.length < 2){ message('No classes are listed right now. Please check the WhatsApp group for the link.'); return; }
-    var head = rows[0].map(function(h){ return h.trim().toLowerCase(); });
-    var cards = [];
-    rows.slice(1).forEach(function(r){
-      var o = {};
-      head.forEach(function(h, i){ o[h] = r[i] === undefined ? '' : r[i]; });
-      var active = pick(o, ['active','show']).toLowerCase();
-      if(active && ['no','n','false','0','hide','hidden'].indexOf(active) !== -1) return;
-      var link = pick(o, ['zoom link','link','url']);
-      var name = pick(o, ['class','class name','name']);
-      if(!name) return;
-      if(link && !/^https:\/\//i.test(link)) link = '';   /* only real https links get a button */
-      cards.push({
-        name: name,
-        day: pick(o, ['day','days']),
-        time: pick(o, ['time']),
-        teacher: pick(o, ['teacher','teachers']),
-        note: pick(o, ['note','notes']),
-        fmt: pick(o, ['name in zoom','name format','login format','zoom name']),
-        mid: pick(o, ['meeting id','meetingid','meeting no','meeting number']),
-        pwd: pick(o, ['password','passcode','pwd']),
-        link: link
-      });
-    });
-    if(!cards.length){ message('No classes are listed right now. Please check the WhatsApp group for the link.'); return; }
+  function lockedView(){
+    window.skbsClassCards = [];
+    listEl.innerHTML = '';
+    var box = document.createElement('div');
+    box.className = 'class-msg class-locked';
+    var p = document.createElement('p');
+    p.textContent = 'The Zoom class links are for registered devotees. Please login, or register if you are new.';
+    var row = document.createElement('div');
+    row.className = 'class-lock-actions';
+    var b1 = document.createElement('button'); b1.type = 'button'; b1.className = 'lock-btn'; b1.textContent = 'Login';
+    var b2 = document.createElement('button'); b2.type = 'button'; b2.className = 'lock-btn alt'; b2.textContent = 'Register';
+    b1.addEventListener('click', function(){ if(window.skbsOpenAuth) window.skbsOpenAuth('login'); });
+    b2.addEventListener('click', function(){ if(window.skbsOpenAuth) window.skbsOpenAuth('signup'); });
+    row.appendChild(b1); row.appendChild(b2);
+    box.appendChild(p); box.appendChild(row);
+    listEl.appendChild(box);
+  }
 
+  function renderCards(cards){
+    if(!cards.length){ window.skbsClassCards = []; message('No classes are listed right now. Please check the WhatsApp group for the link.'); return; }
     window.skbsClassCards = cards;
     listEl.innerHTML = '';
     cards.forEach(function(c, idx){
@@ -1431,17 +1403,45 @@ const FIREBASE_CONFIG = {
     });
   }
 
-  function loadClasses(url){
-    if(!url){ message('Class links will appear here soon. For now, please check the WhatsApp group.'); return; }
-    message('Loading classes…');
-    fetch(url + (url.indexOf('?') === -1 ? '?' : '&') + 't=' + Date.now())
-      .then(function(r){ if(!r.ok) throw new Error('bad response'); return r.text(); })
-      .then(function(t){ render(parseCSV(t)); })
-      .catch(function(){ message('We could not load the class list right now. Please check the WhatsApp group for the link.'); });
+  function normalise(d){
+    var link = String(d.zoom_link || '').trim();
+    if(link && !/^https:\/\//i.test(link)) link = '';
+    return {
+      name: String(d.name || '').trim(),
+      day: String(d.day || '').trim(),
+      time: String(d.time || '').trim(),
+      teacher: String(d.teacher || '').trim(),
+      note: String(d.note || '').trim(),
+      fmt: String(d.name_in_zoom || '').trim(),
+      mid: String(d.meeting_id || '').trim(),
+      pwd: String(d.password || '').trim(),
+      link: link,
+      order: Number(d.order) || 0,
+      active: d.active !== false
+    };
   }
-  window.skbsLoadClasses = loadClasses;
 
-  loadClasses(SHEET_CSV_URL);
+  function loadFromFirebase(){
+    if(!window.skbsClassesApi){ message('We could not load the class list right now. Please check the WhatsApp group for the link.'); return; }
+    message('Loading classes…');
+    window.skbsClassesApi.list().then(function(rows){
+      var cards = rows.map(normalise).filter(function(c){ return c.active && c.name; });
+      cards.sort(function(x, y){ return (x.order - y.order) || x.name.localeCompare(y.name); });
+      renderCards(cards);
+    }).catch(function(){
+      message('We could not load the class list right now. Please check the WhatsApp group for the link.');
+    });
+  }
+
+  var state = null;                       /* null = not known yet, true = logged in, false = logged out */
+  window.skbsOnAuth = function(loggedIn){
+    if(loggedIn === state) return;
+    state = loggedIn;
+    if(loggedIn) loadFromFirebase(); else lockedView();
+  };
+
+  message('Checking your login…');
+  setTimeout(function(){ if(state === null){ state = false; lockedView(); } }, 5000);
 })();
 </script>
 
