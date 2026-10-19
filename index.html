@@ -368,6 +368,23 @@
     min-height:60vh;
   }
 
+
+  /* ---------- Yearly Gita Parayanam ---------- */
+  .gita-band{padding:0 24px 64px; scroll-margin-top:12px;}
+  .gita-wrap{max-width:1180px; margin:0 auto;}
+  .gita-card{background:#141F3D; color:#F7F1E3; border-radius:18px; padding:40px 36px;}
+  .gita-text{max-width:720px;}
+  .gita-card .kicker{color:#F0C878; font-weight:700; font-size:1rem; margin-bottom:6px;}
+  .gita-card h2{margin:0 0 12px; font-size:clamp(1.6rem,3.2vw,2.3rem); line-height:1.2; color:#F7F1E3;}
+  .gita-card p{margin:0 0 20px; font-size:1.12rem; line-height:1.65; color:rgba(247,241,227,0.9);}
+  .gita-actions{display:flex; gap:12px; flex-wrap:wrap;}
+  .gita-btn{display:inline-flex; align-items:center; gap:10px; background:#E1A542; color:#141F3D; text-decoration:none; font-weight:700; font-size:1.12rem; padding:14px 28px; border-radius:10px;}
+  .gita-btn:hover{background:#F0C878;}
+  .gita-btn:focus-visible{outline:3px solid #F7F1E3; outline-offset:3px;}
+  .gita-btn svg{width:22px; height:22px;}
+  .gita-card .gita-note{margin:16px 0 0; font-size:0.98rem; color:rgba(247,241,227,0.7);}
+  @media (max-width:560px){ .gita-card{padding:28px 22px;} .gita-band{padding:0 16px 48px;} }
+
   /* phone arrangement of the top-right items (kept last so it wins) */
   @media (max-width:560px){
     .bar-right{gap:12px 14px;}
@@ -451,6 +468,25 @@
       <h2>Join a Class in Zoom</h2>
       <p class="classes-note">Tap <b>Join in Zoom</b> on your class. Or open the Zoom app, tap <b>Join</b>, and type the <b>Meeting ID</b> and <b>Password</b> shown on the class card. If a card shows neither, please check our WhatsApp group.</p>
       <div class="class-grid" id="classList" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="gita-band" id="gita">
+    <div class="gita-wrap">
+      <div class="gita-card">
+        <div class="gita-text">
+          <div class="kicker">Every year</div>
+          <h2>Sampoorna Bhagavad Gita Parayanam</h2>
+          <p>Every year the Sabha recites the complete Bhagavad Gita together. Devotees who wish to take part register their details using the button below.</p>
+          <div class="gita-actions">
+            <a class="gita-btn" href="https://tinyurl.com/gita-parayanam" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16l-7-4-7 4z"/></svg>
+              <span>Register as a Devotee</span>
+            </a>
+          </div>
+          <p class="gita-note">The form opens in a new page. Please fill it in and submit it there.</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -672,6 +708,7 @@ const FIREBASE_CONFIG = {
       if(c === 'auth/email-already-in-use') return new Error('already registered');
       if(c === 'auth/weak-password') return new Error('Password should be at least 6 characters.');
       if(c === 'auth/network-request-failed') return new Error('Network problem. Please check your internet and try again.');
+      if(c === 'auth/too-many-requests'){ const e = new Error('too many tries'); e.userMessage = 'Too many tries. Please wait a few minutes and try again.'; return e; }
       return (err instanceof Error) ? err : new Error('Something went wrong. Please try again.');
     }
     async function profileFor(user){
@@ -934,9 +971,10 @@ const FIREBASE_CONFIG = {
           loginForm.reset();
           
         })
-        .catch(()=>{
+        .catch(function(err){
           loadEl.style.display='none';
-          errEl.textContent = method==='mobile' ? 'Incorrect mobile number or password.' : 'Incorrect email or password.';
+          var specific = err && (err.userMessage || (/^Network problem/.test(err.message || '') ? err.message : ''));
+          errEl.textContent = specific || (method==='mobile' ? 'Incorrect mobile number or password. If you registered with an email, use the Email tab.' : 'Incorrect email or password. If you registered with a mobile number, use the Mobile Number tab.');
           errEl.style.display='block';
         });
     });
