@@ -385,6 +385,25 @@
   .gita-card .gita-note{margin:16px 0 0; font-size:0.98rem; color:rgba(247,241,227,0.7);}
   @media (max-width:560px){ .gita-card{padding:28px 22px;} .gita-band{padding:0 16px 48px;} }
 
+
+  /* ---------- Fill the Register form from the Gita Parayanam profile ---------- */
+  .prefill-box{background:#FFF8E1; border-left:4px solid #E1A542; border-radius:8px; padding:14px 16px; margin:4px 0 18px;}
+  .pf-title{margin:0 0 2px; font-weight:700; font-size:1.05rem; color:#141F3D;}
+  .pf-sub{margin:0 0 10px; font-size:0.95rem; color:#5A5648;}
+  .pf-row{display:flex; gap:8px; flex-wrap:wrap;}
+  .pf-row input{flex:1; min-width:150px;}
+  .pf-btn{font:inherit; font-weight:700; font-size:1rem; padding:10px 16px; border-radius:8px; border:2px solid #141F3D; background:#141F3D; color:#F7F1E3; cursor:pointer;}
+  .pf-btn:hover{background:#1E2E56;}
+  .pf-btn[disabled]{opacity:0.6; cursor:wait;}
+  .pf-btn:focus-visible{outline:3px solid #0F5C55; outline-offset:2px;}
+  .pf-q{margin:12px 0 8px; font-size:0.98rem; color:#141F3D; line-height:1.5;}
+  .pf-choose{display:flex; flex-direction:column; gap:8px; margin-top:12px;}
+  .pf-choose p{margin:0; font-size:0.98rem; color:#141F3D;}
+  .pf-pick{font:inherit; font-weight:600; text-align:left; padding:10px 14px; border-radius:8px; border:2px solid #0F5C55; background:#fff; color:#0F5C55; cursor:pointer;}
+  .pf-pick:hover{background:#0F5C55; color:#fff;}
+  .pf-msg{margin-top:10px; font-size:0.95rem; color:#14633A; font-weight:600; min-height:1.1em;}
+  .pf-msg.bad{color:#B3261E;}
+
   /* phone arrangement of the top-right items (kept last so it wins) */
   @media (max-width:560px){
     .bar-right{gap:12px 14px;}
@@ -538,6 +557,23 @@
   <div class="auth-box">
     <button class="auth-close" onclick="closeAuthModal('signup')" aria-label="Close">&times;</button>
     <h3>Become a Member</h3>
+    <div class="prefill-box" id="prefillBox">
+      <p class="pf-title">Already filled your Gita Parayanam profile?</p>
+      <p class="pf-sub">Type your mobile number and we will fill this form for you.</p>
+      <div class="pf-row">
+        <input id="pfMobile" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit mobile number" autocomplete="off">
+        <button type="button" class="pf-btn" id="pfGo">Fill my details</button>
+      </div>
+      <div id="pfAsk" hidden>
+        <p class="pf-q" id="pfQ"></p>
+        <div class="pf-row">
+          <input id="pfProof" type="text" placeholder="Your answer" autocomplete="off">
+          <button type="button" class="pf-btn" id="pfCheck">Check</button>
+        </div>
+      </div>
+      <div id="pfChoose" hidden></div>
+      <div class="pf-msg" id="pfMsg" aria-live="polite"></div>
+    </div>
     <p class="auth-sub">Choose how you'd like to log in — with a mobile number, or a secured email account.</p>
     <div class="auth-tabs">
       <button type="button" class="auth-tab active" id="suTabMobile" onclick="setAuthMethod('signup','mobile')">Mobile Number</button>
@@ -763,6 +799,122 @@ const FIREBASE_CONFIG = {
   }catch(e){
     console.error('Member login could not start:', e);
   }
+})();
+</script>
+
+<script>
+(function(){
+  /* The Gita Parayanam Devotee Register (the page behind tinyurl.com/gita-parayanam).
+     If its address ever changes, paste the new /exec address here. */
+  var GITA_API_URL = 'https://script.google.com/macros/s/AKfycbwNsYHTE--RjsULMQcRLIuinZfV6hSkuOk_zh9NmiFvXhZPS26lQrpiJzOYrntTc4rw/exec';
+
+  var $ = function(id){ return document.getElementById(id); };
+  var asked = '';                                   /* the mobile number being checked */
+
+  function msg(text, bad){ var m = $('pfMsg'); m.textContent = text || ''; m.className = 'pf-msg' + (bad ? ' bad' : ''); }
+  function busy(on){ $('pfGo').disabled = on; $('pfCheck').disabled = on; }
+  function norm(x){ return String(x == null ? '' : x).toLowerCase().replace(/[^a-z]/g, ''); }
+
+  function ask(mobile, proof){
+    var url = GITA_API_URL + '?action=getProfile&contact=' + encodeURIComponent(mobile) + (proof ? '&proof=' + encodeURIComponent(proof) : '');
+    return fetch(url).then(function(r){ if(!r.ok) throw new Error('bad response'); return r.json(); });
+  }
+
+  /* put a saved text value into one of our drop-downs; use "Other" + the text box when it is not in the list */
+  function pick(selId, otherId, value){
+    var v = String(value == null ? '' : value).trim();
+    if(!v) return;
+    var sel = $(selId), key = norm(v), hit = null;
+    Array.prototype.forEach.call(sel.options, function(o){
+      if(!o.value || o.value === 'Other') return;
+      var k = norm(o.value);
+      if(!hit && (k === key || (key.length >= 4 && k.indexOf(key) === 0))) hit = o;
+    });
+    if(hit){ sel.value = hit.value; }
+    else { sel.value = 'Other'; $(otherId).value = v; }
+    if(window.toggleOther) window.toggleOther(selId, otherId);
+  }
+
+  function fill(p, mobile, nameOnly){
+    if(window.setAuthMethod) window.setAuthMethod('signup', 'mobile');
+    $('suMobile').value = mobile;
+    $('suName').value = String(p.name || '').trim();
+    if(!nameOnly){
+      /* start clean, so nothing is left over from a different person */
+      $('suDob').value = ''; $('suAnniversary').value = '';
+      $('suMotherTongue').value = ''; $('suMotherTongueOther').value = '';
+      $('suState').value = ''; $('suStateOther').value = '';
+      $('suCountry').value = 'India'; $('suCountryOther').value = '';
+      if(window.toggleOther){ window.toggleOther('suMotherTongue','suMotherTongueOther'); window.toggleOther('suState','suStateOther'); window.toggleOther('suCountry','suCountryOther'); }
+      pick('suMotherTongue', 'suMotherTongueOther', p.motherTongue);
+      pick('suState', 'suStateOther', p.state);
+      if(p.country) pick('suCountry', 'suCountryOther', p.country);
+      if(/^\d{4}-\d{2}-\d{2}$/.test(String(p.dob || ''))) $('suDob').value = p.dob;
+      if(/^\d{4}-\d{2}-\d{2}$/.test(String(p.anniversary || ''))) $('suAnniversary').value = p.anniversary;
+    }
+    $('pfAsk').hidden = true; $('pfChoose').hidden = true;
+    msg(nameOnly ? 'Your name is filled in. Please add the other details below.' : 'Your details are filled in below. Please check them, create a password, and tap Sign Up.');
+    try{ $('suPassword').scrollIntoView({behavior:'smooth', block:'center'}); $('suPassword').focus({preventScroll:true}); }catch(e){}
+  }
+
+  function choose(list, mobile, nameOnly){
+    var box = $('pfChoose'); box.innerHTML = ''; box.hidden = false; $('pfAsk').hidden = true;
+    var wrap = document.createElement('div'); wrap.className = 'pf-choose';
+    var q = document.createElement('p'); q.textContent = 'More than one person uses this mobile number. Who are you?'; wrap.appendChild(q);
+    list.forEach(function(item){
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'pf-pick';
+      b.textContent = nameOnly ? item : String(item.name || '').trim();
+      b.addEventListener('click', function(){ fill(nameOnly ? { name: item } : item, mobile, nameOnly); });
+      wrap.appendChild(b);
+    });
+    box.appendChild(wrap);
+    msg('');
+  }
+
+  function handle(res, mobile){
+    busy(false);
+    if(!res || !res.ok){
+      msg((res && res.error) ? String(res.error) : 'We could not read the register right now. Please fill the form below by hand.', true);
+      return;
+    }
+    if(res.locked){
+      $('pfChoose').hidden = true;
+      if(res.tooMany){ $('pfAsk').hidden = true; msg('Too many wrong answers. Please try again after 15 minutes, or fill the form below by hand.', true); return; }
+      $('pfQ').textContent = (res.kind === 'buddy')
+        ? 'To keep your details private, please type the last 4 digits of your buddy’s mobile number, or your buddy’s first name.'
+        : 'To keep your details private, please type your birthday as day and month. For example, 1508 for 15 August.';
+      $('pfAsk').hidden = false; $('pfProof').value = ''; $('pfProof').focus();
+      msg(res.wrong ? ('That does not match.' + (res.left != null ? ' ' + res.left + ' tries left.' : '')) : '', !!res.wrong);
+      return;
+    }
+    var profiles = res.profiles || [], members = res.members || [];
+    if(profiles.length === 1) fill(profiles[0], mobile, false);
+    else if(profiles.length > 1) choose(profiles, mobile, false);
+    else if(members.length === 1) fill({ name: members[0] }, mobile, true);
+    else if(members.length > 1) choose(members, mobile, true);
+    else msg('We could not find a profile for this number. Please fill the form below by hand.', true);
+  }
+
+  function fail(){
+    busy(false);
+    msg('We could not reach the Gita Parayanam register just now. Please fill the form below by hand.', true);
+  }
+
+  $('pfGo').addEventListener('click', function(){
+    var m = $('pfMobile').value.replace(/\D/g, '');
+    if(!/^\d{10}$/.test(m)){ msg('Please type a valid 10-digit mobile number.', true); return; }
+    asked = m; $('pfAsk').hidden = true; $('pfChoose').hidden = true;
+    msg('Looking for your profile… this can take a few seconds.'); busy(true);
+    ask(m).then(function(r){ handle(r, m); }).catch(fail);
+  });
+  $('pfCheck').addEventListener('click', function(){
+    var proof = $('pfProof').value.trim();
+    if(!proof){ msg('Please type your answer.', true); return; }
+    msg('Checking…'); busy(true);
+    ask(asked, proof).then(function(r){ handle(r, asked); }).catch(fail);
+  });
+  $('pfMobile').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); $('pfGo').click(); } });
+  $('pfProof').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); $('pfCheck').click(); } });
 })();
 </script>
 
@@ -1220,6 +1372,8 @@ const FIREBASE_CONFIG = {
     { title:'Login & Access', icon:ICON_LOCK, items:[
       { q:'How do I sign in to my account?',
         a:'Tap <b>Log In</b> at the top of the website. Choose <b>Mobile Number</b> or <b>Email</b>, whichever you used when you registered, then type your password. If you have not registered yet, tap <b>Become a Member</b> and fill in your details.' },
+      { q:'I already filled my Gita Parayanam profile. Do I have to type everything again?',
+        a:'No. Tap <b>REGISTER</b> and type your mobile number in the box at the top of the form. To keep your details private, you will be asked a small question, such as your birthday as day and month (for example, 1508 for 15 August). Your name, dates, mother tongue and place are then filled in for you. Check them, create a password, and tap <b>Sign Up</b>.' },
       { q:'I can’t remember which mobile number or email I used.',
         a:'Your login ID is the mobile number or the email address you used when you registered. If you are not sure which one you used, try your mobile number first and then your email. If you still cannot find it, please write to us at '+MAIL+' or call '+PHONE+' with your name, and we will help you.' },
       { q:'I have forgotten my password. What now?',
