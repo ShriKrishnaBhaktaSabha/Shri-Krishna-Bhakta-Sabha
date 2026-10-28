@@ -404,6 +404,37 @@
   .pf-msg{margin-top:10px; font-size:0.95rem; color:#14633A; font-weight:600; min-height:1.1em;}
   .pf-msg.bad{color:#B3261E;}
 
+
+  /* ---------- Class recordings ---------- */
+  .rec-band{padding:64px 24px; background:#F7F1E3; scroll-margin-top:12px;}
+  .rec-wrap{max-width:1180px; margin:0 auto;}
+  .rec-wrap .kicker{color:#0F5C55; font-weight:700; font-size:1rem; margin-bottom:6px;}
+  .rec-wrap h2{margin:0 0 10px; font-size:clamp(1.7rem,3.4vw,2.4rem); color:#141F3D; line-height:1.2;}
+  .rec-note{margin:0 0 26px; font-size:1.1rem; color:#5A5648; line-height:1.6; max-width:760px;}
+  .batch-row{display:flex; flex-wrap:wrap; gap:12px; margin-bottom:26px;}
+  .batch-chip{font:inherit; text-align:left; background:#fff; border:2px solid rgba(20,31,61,0.2); border-radius:12px; padding:12px 20px; cursor:pointer; min-width:130px;}
+  .batch-chip b{display:block; font-size:1.2rem; color:#141F3D;}
+  .batch-chip span{display:block; font-size:0.95rem; color:#5A5648; margin-top:2px;}
+  .batch-chip:hover{border-color:#0F5C55;}
+  .batch-chip.on{background:#141F3D; border-color:#141F3D;}
+  .batch-chip.on b{color:#F7F1E3;} .batch-chip.on span{color:rgba(247,241,227,0.8);}
+  .batch-chip:focus-visible{outline:3px solid #0F5C55; outline-offset:3px;}
+  .rec-sections details{background:#fff; border:1.5px solid rgba(20,31,61,0.15); border-radius:12px; margin-bottom:10px; overflow:hidden;}
+  .rec-sections summary{cursor:pointer; padding:16px 20px; font-size:1.2rem; font-weight:700; color:#141F3D; list-style:none; display:flex; align-items:center; justify-content:space-between; gap:12px;}
+  .rec-sections summary::-webkit-details-marker{display:none;}
+  .rec-sections summary::after{content:"+"; font-size:1.6rem; color:#0F5C55; line-height:1;}
+  .rec-sections details[open] summary::after{content:"\2013";}
+  .rec-sections summary:focus-visible{outline:3px solid #0F5C55; outline-offset:-3px;}
+  .rec-count{font-size:0.95rem; font-weight:600; color:#5A5648; margin-left:auto; margin-right:8px;}
+  .rec-list{list-style:none; margin:0; padding:0 20px 14px;}
+  .rec-list li{display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; padding:12px 0; border-top:1px solid rgba(20,31,61,0.12);}
+  .rec-title{font-size:1.1rem; color:#1B1B1B;}
+  .rec-watch{display:inline-flex; align-items:center; gap:8px; background:#E1A542; color:#141F3D; text-decoration:none; font-weight:700; font-size:1.02rem; padding:10px 20px; border-radius:10px;}
+  .rec-watch:hover{background:#F0C878;}
+  .rec-watch:focus-visible{outline:3px solid #141F3D; outline-offset:3px;}
+  .rec-watch svg{width:20px; height:20px;}
+  .rec-empty{padding:22px; border:1.5px dashed rgba(20,31,61,0.3); border-radius:14px; background:#FBF8EF; font-size:1.08rem; color:#5A5648;}
+
   /* phone arrangement of the top-right items (kept last so it wins) */
   @media (max-width:560px){
     .bar-right{gap:12px 14px;}
@@ -487,6 +518,15 @@
       <h2>Join a Class in Zoom</h2>
       <p class="classes-note">Tap <b>Join in Zoom</b> on your class. Or open the Zoom app, tap <b>Join</b>, and type the <b>Meeting ID</b> and <b>Password</b> shown on the class card. If a card shows neither, please check our WhatsApp group.</p>
       <div class="class-grid" id="classList" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="rec-band" id="recordings">
+    <div class="rec-wrap">
+      <div class="kicker">Shrimad Bhagavad Gita</div>
+      <h2>Class Recordings</h2>
+      <p class="rec-note">Choose a batch to watch its recorded classes, chapter by chapter. Every registered devotee can watch the recordings of every batch.</p>
+      <div id="recBody" aria-live="polite"></div>
     </div>
   </section>
 
@@ -784,6 +824,13 @@ const FIREBASE_CONFIG = {
       logout: function(){ return authM.signOut(auth); }
     };
 
+    window.skbsRecordingsApi = {
+      list: async function(){
+        const snap = await fsM.getDocs(fsM.collection(db, 'recordings'));
+        return snap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });
+      }
+    };
+
     window.skbsClassesApi = {
       list: async function(){
         const snap = await fsM.getDocs(fsM.collection(db, 'classes'));
@@ -799,6 +846,106 @@ const FIREBASE_CONFIG = {
   }catch(e){
     console.error('Member login could not start:', e);
   }
+})();
+</script>
+
+<script>
+(function(){
+  /* Class recordings of the Shrimad Bhagavad Gita batches. Shown only to logged-in devotees; the
+     recordings are kept in the Sabha's Firebase database and managed on the Admin page. */
+  var body = document.getElementById('recBody');
+  var state = null, chosen = null, data = null;
+  var PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+
+  function box(text, locked){
+    body.innerHTML = '';
+    var d = document.createElement('div'); d.className = 'class-msg' + (locked ? ' class-locked' : '');
+    if(!locked){ d.textContent = text; body.appendChild(d); return; }
+    var p = document.createElement('p'); p.textContent = text;
+    var row = document.createElement('div'); row.className = 'class-lock-actions';
+    var b1 = document.createElement('button'); b1.type = 'button'; b1.className = 'lock-btn'; b1.textContent = 'Login';
+    var b2 = document.createElement('button'); b2.type = 'button'; b2.className = 'lock-btn alt'; b2.textContent = 'Register';
+    b1.addEventListener('click', function(){ if(window.skbsOpenAuth) window.skbsOpenAuth('login'); });
+    b2.addEventListener('click', function(){ if(window.skbsOpenAuth) window.skbsOpenAuth('signup'); });
+    row.appendChild(b1); row.appendChild(b2); d.appendChild(p); d.appendChild(row); body.appendChild(d);
+  }
+
+  function natural(a, b){ return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }); }
+
+  function build(rows){
+    var batches = {};
+    rows.forEach(function(r){
+      var n = parseInt(r.batch, 10), link = String(r.link || '').trim(), section = String(r.section || '').trim();
+      if(!n || !/^https:\/\//i.test(link)) return;
+      var b = batches[n] || (batches[n] = { n: n, teachers: [], sections: {} });
+      var t = String(r.teacher || '').trim(); if(t && b.teachers.indexOf(t) < 0) b.teachers.push(t);
+      var key = section || 'Recordings';
+      var sec = b.sections[key] || (b.sections[key] = { name: key, first: 1e9, items: [] });
+      var o = Number(r.order); if(!isFinite(o) || !o) o = 1e6;
+      sec.first = Math.min(sec.first, o);
+      sec.items.push({ title: String(r.title || '').trim(), link: link, order: o });
+    });
+    return Object.keys(batches).map(Number).sort(function(a, b){ return b - a; }).map(function(n){
+      var b = batches[n];
+      b.list = Object.keys(b.sections).map(function(k){ return b.sections[k]; });
+      b.list.sort(function(x, y){ return (x.first - y.first) || natural(x.name, y.name); });
+      b.list.forEach(function(s){ s.items.sort(function(x, y){ return (x.order - y.order) || natural(x.title, y.title); }); });
+      return b;
+    });
+  }
+
+  function render(){
+    body.innerHTML = '';
+    if(!data.length){ box('No recordings have been added yet. Please check back soon.'); return; }
+    if(chosen === null || !data.some(function(b){ return b.n === chosen; })) chosen = data[0].n;
+
+    var row = document.createElement('div'); row.className = 'batch-row'; row.setAttribute('role', 'group'); row.setAttribute('aria-label', 'Choose a batch');
+    data.forEach(function(b){
+      var c = document.createElement('button'); c.type = 'button'; c.className = 'batch-chip' + (b.n === chosen ? ' on' : '');
+      c.setAttribute('aria-pressed', b.n === chosen ? 'true' : 'false');
+      var t = document.createElement('b'); t.textContent = 'Batch ' + b.n; c.appendChild(t);
+      if(b.teachers.length){ var s = document.createElement('span'); s.textContent = b.teachers.join(', '); c.appendChild(s); }
+      c.addEventListener('click', function(){ chosen = b.n; render(); });
+      row.appendChild(c);
+    });
+    body.appendChild(row);
+
+    var cur = data.filter(function(b){ return b.n === chosen; })[0];
+    var wrap = document.createElement('div'); wrap.className = 'rec-sections';
+    cur.list.forEach(function(sec, i){
+      var d = document.createElement('details'); if(i === 0 && cur.list.length === 1) d.open = true;
+      var sm = document.createElement('summary');
+      var nm = document.createElement('span'); nm.textContent = sec.name;
+      var ct = document.createElement('span'); ct.className = 'rec-count'; ct.textContent = sec.items.length + (sec.items.length === 1 ? ' video' : ' videos');
+      sm.appendChild(nm); sm.appendChild(ct); d.appendChild(sm);
+      var ul = document.createElement('ul'); ul.className = 'rec-list';
+      sec.items.forEach(function(it, k){
+        var li = document.createElement('li');
+        var t = document.createElement('span'); t.className = 'rec-title'; t.textContent = it.title || ('Recording ' + (k + 1));
+        var a = document.createElement('a'); a.className = 'rec-watch'; a.href = it.link; a.target = '_blank'; a.rel = 'noopener';
+        a.innerHTML = PLAY + '<span>Watch</span>';
+        a.setAttribute('aria-label', 'Watch ' + sec.name + ', ' + (it.title || ('Recording ' + (k + 1))));
+        li.appendChild(t); li.appendChild(a); ul.appendChild(li);
+      });
+      d.appendChild(ul); wrap.appendChild(d);
+    });
+    body.appendChild(wrap);
+  }
+
+  function load(){
+    if(!window.skbsRecordingsApi){ box('We could not load the recordings right now. Please try again a little later.'); return; }
+    box('Loading recordings…');
+    window.skbsRecordingsApi.list().then(function(rows){ data = build(rows); render(); })
+      .catch(function(){ box('We could not load the recordings right now. Please try again a little later.'); });
+  }
+
+  (window.skbsAuthSubs = window.skbsAuthSubs || []).push(function(loggedIn){
+    if(loggedIn === state) return;
+    state = loggedIn;
+    if(loggedIn) load(); else box('The class recordings are for registered devotees. Please login, or register if you are new.', true);
+  });
+  box('Checking your login…');
+  setTimeout(function(){ if(state === null){ state = false; box('The class recordings are for registered devotees. Please login, or register if you are new.', true); } }, 5000);
 })();
 </script>
 
@@ -943,7 +1090,7 @@ const FIREBASE_CONFIG = {
       out.forEach(function(el){ el.style.display = 'inline-flex'; });
       inn.forEach(function(el){ el.style.display = 'none'; });
     }
-    if(window.skbsOnAuth) window.skbsOnAuth(!!user);
+    (window.skbsAuthSubs || []).forEach(function(fn){ try{ fn(!!user); }catch(e){} });
   }
 
   window.skbsSetAuthUI = setAuthUI;
@@ -1402,6 +1549,8 @@ const FIREBASE_CONFIG = {
         a:'We suggest keeping your microphone muted unless the teacher invites you to speak, so that background sounds do not disturb the class. Keeping your camera on or off is your choice.' },
       { q:'The Zoom link is not working. What should I do?',
         a:'Please use the link from the <a href="#classes">Join a Class in Zoom</a> section, because old links from earlier messages may no longer work. If the class has already started, the meeting is locked, so please follow it on our YouTube livestream. If Zoom says the meeting has ended, the class may be over for the day. If it still does not open, write to us at '+MAIL+' or call '+PHONE+'.' },
+      { q:'Where can I watch the recordings of earlier Gita batches?',
+        a:'Log in, then open the <a href="#recordings">Class Recordings</a> section. Choose a batch, then a chapter, and tap <b>Watch</b>. Every registered devotee can watch the recordings of every batch.' },
       { q:'How can I check my attendance for a class?',
         a:'Open the '+a(L.att,'My Attendance page')+'. Enter your Roll Number-Name, or just your Roll Number, or your full name if you do not have a Roll Number, then tap “View My Attendance”.' },
       { q:'How will I know about a new class or a change in timing?',
@@ -1626,11 +1775,11 @@ const FIREBASE_CONFIG = {
   }
 
   var state = null;                       /* null = not known yet, true = logged in, false = logged out */
-  window.skbsOnAuth = function(loggedIn){
+  (window.skbsAuthSubs = window.skbsAuthSubs || []).push(function(loggedIn){
     if(loggedIn === state) return;
     state = loggedIn;
     if(loggedIn) loadFromFirebase(); else lockedView();
-  };
+  });
 
   message('Checking your login…');
   setTimeout(function(){ if(state === null){ state = false; lockedView(); } }, 5000);
