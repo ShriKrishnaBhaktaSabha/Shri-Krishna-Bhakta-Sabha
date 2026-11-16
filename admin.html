@@ -204,7 +204,12 @@ function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add(
       await authM.signInWithEmailAndPassword(auth, email, $('liPass').value);
       $('liPass').value = '';
     }catch(err){
-      $('loginErr').textContent = 'Incorrect login details. Please try again.';
+      const c = (err && err.code) || '';
+      $('loginErr').textContent =
+        c === 'auth/too-many-requests' ? 'Too many tries. Please wait a few minutes and try again.' :
+        c === 'auth/network-request-failed' ? 'Network problem. Please check your internet and try again.' :
+        c === 'auth/operation-not-allowed' ? 'Email/Password sign-in is not switched on in Firebase.' :
+        'Incorrect details. If you registered with an email, use the Email tab. Otherwise check the password.';
     }
   });
   $('logoutBtn').onclick = () => authM.signOut(auth);
